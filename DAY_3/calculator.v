@@ -13,7 +13,8 @@
 \TLV
    $reset = *reset;
    
-   $val1[31:0] = >>1$out;
+   $op[1:0] = $rand1[1:0];
+   $val1[31:0] = $reset ? 0 : >>1$out;
    $val2[31:0] = $rand2[3:0];
    
    $sum[31:0] = $val1[31:0] + $val2[31:0];
@@ -21,7 +22,10 @@
    $prod[31:0] = $val1[31:0] * $val2[31:0];
    $quot[31:0] = $val1[31:0] / $val2[31:0];
    
-   $out[31:0] = $sel[2] ? $quot[31:0] : ($sel[1] ? $prod[31:0] : ($sel[0] ? $diff[31:0] : $sum[31:0]));
+   $out[31:0] = $reset ? 0 :
+                ($op == 0) ? $sum :
+                ($op == 1) ? $diff :
+                ($op == 2) ? $prod : $quot;
    
    // Assert these to end simulation (before the cycle limit).
    *passed = *cyc_cnt > 40;
