@@ -17,9 +17,9 @@
          $err1 = $bad_input || $illegal_op;
          
       @3
-         $err2 = $over_flow || >>$err1;
+         $err2 = $over_flow || $err1;
       @6
-         $err3 = $divide_by_zero || >>$err2;
+         $err3 = $divide_by_zero || $err2;
    
    
    // Assert these to end simulation (before the cycle limit).
