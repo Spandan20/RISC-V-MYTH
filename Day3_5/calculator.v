@@ -11,26 +11,24 @@
    |calc
       @0
          $reset = *reset;
-         
-         
       @1
-         
          $val1[31:0] = >>2$out;
          $val2[31:0] = $rand2[3:0];
-
-         $sum[31:0] = $val1[31:0] + $val2[31:0];
-         $diff[31:0] = $val1[31:0] - $val2[31:0];
-         $prod[31:0] = $val1[31:0] * $val2[31:0];
-         $quot[31:0] = $val1[31:0] / $val2[31:0];
-         
-         $valid = $reset ? 1'b0 : (>>1$valid + 1);
-      @2
-         $op[1:0] = 'x;
-         $out[31:0] = $reset || !$valid ? 32'b0 :
-                      ($op == 0) ? $sum :
-                      ($op == 1) ? $diff :
-                      ($op == 2) ? $prod : $quot;
-         
+         $valid = $reset ? 1'b0 : (>>1$valid + 1'b1);
+         $valid_or_reset = $valid || $reset;
+      ?$valid_or_reset
+         @1
+            $sum[31:0] = $val1[31:0] + $val2[31:0];
+            $diff[31:0] = $val1[31:0] - $val2[31:0];
+            $prod[31:0] = $val1[31:0] * $val2[31:0];
+            $quot[31:0] = $val1[31:0] / $val2[31:0];
+            
+         @2
+            $op[1:0] = 'x;
+            $out[31:0] = $reset ? 32'b0 :
+                        ($op == 2'b00) ? $sum :
+                        ($op == 2'b01) ? $diff :
+                        ($op == 2'b10) ? $prod : $quot;
          
 
       // Macro instantiations for calculator visualization(disabled by default).
