@@ -12,10 +12,13 @@
       @0
          $reset = *reset;
       @1
+         
          $val1[31:0] = >>2$out;
          $val2[31:0] = $rand2[3:0];
          $valid = $reset ? 1'b0 : (>>1$valid + 1'b1);
          $valid_or_reset = $valid || $reset;
+      @2
+         $op[2:0] = 'x;
       ?$valid_or_reset
          @1
             $sum[31:0] = $val1[31:0] + $val2[31:0];
@@ -24,11 +27,14 @@
             $quot[31:0] = $val1[31:0] / $val2[31:0];
             
          @2
-            $op[1:0] = 'x;
+            
+            $mem[31:0] = $reset ? 32'b0 :
+                         ($op == 2'b00) ? >>2$mem : >>2$out;
             $out[31:0] = $reset ? 32'b0 :
                         ($op == 2'b00) ? $sum :
                         ($op == 2'b01) ? $diff :
-                        ($op == 2'b10) ? $prod : $quot;
+                        ($op == 2'b10) ? $prod :
+                        ($op == 2'b11) ? $quot :>>2$mem  ;
          
 
       // Macro instantiations for calculator visualization(disabled by default).
@@ -40,7 +46,7 @@
       //  o $rand2[3:0]
       //  o $op[x:0]
       
-   //m4+cal_viz(@3) // Arg: Pipeline stage represented by viz, should be atleast equal to last stage of CALCULATOR logic.
+   m4+cal_viz(@3) // Arg: Pipeline stage represented by viz, should be atleast equal to last stage of CALCULATOR logic.
 
    
    // Assert these to end simulation (before Makerchip cycle limit).
