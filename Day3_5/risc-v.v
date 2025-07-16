@@ -41,10 +41,15 @@
       @0
          $reset = *reset;
          $pc[31:0] = >>1$reset ? 0 : 
-                     >>1$taken_br ? >>1$br_tgt_pc : (>>1$pc + 4);
+                     >>3$valid_taken_br ? >>3$br_tgt_pc : >>3$inc_pc;
          $imem_rd_addr[M4_IMEM_INDEX_CNT-1:0] = $pc[M4_IMEM_INDEX_CNT+1:2];
          $imem_rd_en = !$reset;
+         $start = >>1$reset && !$reset;
+         $valid = $reset ? 1'b0 :
+                  $start ? 1'b1 : >>3$valid;
+         
       @1
+         $inc_pc[31:0] = $pc + 32'd4;
          $instr[31:0] = $imem_rd_data;
          
          $is_i_instr = $instr[6:2] ==? 5'b0000x ||
@@ -102,23 +107,30 @@
          $is_addi = $dec_bits ==? 11'bx_000_0010011;
          $is_add = $dec_bits ==? 11'b0_000_0110011;
          
+      @2
          //RF RD
          $rf_rd_en1 = $rs1_valid;
          $rf_rd_index1[4:0] = $rs1;
          $rf_rd_en2 = $rs2_valid;
          $rf_rd_index2[4:0] = $rs2;
          
-         $rf_wr_en = $rd ? $rd_valid : 5'b0;
-         $rf_wr_index[4:0] = $rd;
          
-         $src1_value[31:0] = $rf_rd_data1;
-         $src2_value[31:0] = $rf_rd_data2;
          
+         $src1_value[31:0] = >>1$rf_wr_en && (>>1$rf_wr_index == $rf_rd_index1) ?
+                             >>1$rf_wr_data :
+                             $rf_rd_data1;
+         $src2_value[31:0] = >>1$rf_wr_en && (>>1$rf_wr_index == $rf_rd_index2) ?
+                             >>1$rf_wr_data :
+                             $rf_rd_data2;
+         $br_tgt_pc[31:0] = $pc + $imm;
+      @3   
          //ALU
          $result[31:0] = $is_addi ? $src1_value + $imm :
                          $is_add ? $src1_value + $src2_value :
                          32'bx;
-         
+      
+         $rf_wr_en = $rd_valid && $rd != 5'b0 && $valid;
+         $rf_wr_index[4:0] = $rd;
          $rf_wr_data[31:0] = $result;
          
          //Branches
@@ -130,11 +142,12 @@
                      $is_bgeu ? $src1_value >= $src2_value :
                      1'b0;
          
-         $br_tgt_pc[31:0] = $pc + $imm;
+         $valid_taken_br = $valid && $taken_br;
          
    
    // Assert these to end simulation (before Makerchip cycle limit).
-   *passed = *cyc_cnt > 40;
+   *passed = *cyc_cnt > 60;
+   *passed = |cpu/xreg[10]>>5$value == (1+2+3+4+5+6+7+8+9);
    *failed = 1'b0;
    
    // Macro instantiations for:
@@ -144,7 +157,7 @@
    //  o CPU visualization
    |cpu
       m4+imem(@1)    // Args: (read stage)
-      m4+rf(@1, @1)  // Args: (read stage, write stage) - if equal, no register bypass is required
+      m4+rf(@2, @3)  // Args: (read stage, write stage) - if equal, no register bypass is required
       //m4+dmem(@4)    // Args: (read/write stage)
 
    m4+cpu_viz(@4)    // For visualisation, argument should be at least equal to the last stage of CPU logic. @4 would work for all labs.
